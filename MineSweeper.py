@@ -46,7 +46,9 @@ class Minesweeper:
                 for j in range(max(0, column-1), min(self.columns, column+2)):
                     if not self.visible[i][j]:
                         self.open_cell(i, j)
-        return "Continue"
+        
+        if self.check_victory():
+            return "Victory"
     
     def mark_mine(self, row, column):
         if not self.lose:
@@ -74,3 +76,10 @@ class Minesweeper:
                     row += ". "
             print(row)
         print()
+    
+    def check_victory(self):
+        for i in range(self.rows):
+            for j in range(self.columns):
+                if self.board[i][j] != -1 and not self.visible[i][j]:
+                    return False
+        return True
