@@ -1,4 +1,7 @@
 import random
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 class Minesweeper:
     def __init__(self, rows, columns, num_mines):
@@ -83,3 +86,55 @@ class Minesweeper:
                 if self.board[i][j] != -1 and not self.visible[i][j]:
                     return False
         return True
+    
+# Function to simulate the game and generate training data
+def generate_game_data(rows, columns, num_mines, num_samples):
+    game_data = []
+    
+    for _ in range(num_samples):
+        game = Minesweeper(rows, columns, num_mines)
+        
+        while not game.lose and not game.check_victory():
+            # Select a random cell to open or mark
+            row = random.randint(0, rows - 1)
+            col = random.randint(0, columns - 1)
+            action = random.choice(["open", "mark"])
+            
+            if action == "open":
+                result = game.open_cell(row, col)
+            elif action == "mark":
+                game.mark_mine(row, col)
+                result = "mark"
+
+            if result == "mine" or result == "Victory":
+                break  # End the simulation when a mine is hit or the game is won
+            
+            # Save game features and action
+            flattened_board = [cell for row in game.board for cell in row]
+            flattened_visible = [cell for row in game.visible for cell in row]
+            flattened_marked = [cell for row in game.marked for cell in row]
+            features = flattened_board + flattened_visible + flattened_marked
+            game_data.append(features + [result])
+
+    # Create DataFrame with generated data
+    df = pd.DataFrame(game_data)
+    return df
+
+# Generate game data (adjust number of samples as needed)
+game_data = generate_game_data(5, 5, 5, 100)  # 5x5 board with 5 mines and 100 samples
+
+# Save data to CSV file
+game_data.to_csv("minesweeper_training_data.csv", index=False)
+
+# Load data from CSV
+data = pd.read_csv("minesweeper_training_data.csv")
+
+# Preprocessing
+X = data.iloc[:, :-1].values  # All columns except last (action)
+y = data.iloc[:, -1].values  # Only action column (last)
+
+# Convert labels to numeric values
+label_encoder = LabelEncoder()
+y = label_encoder.fit_transform(y)
+
+# Now you can use X and y to train your AI model
