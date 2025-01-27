@@ -2,6 +2,9 @@
 DataGeneration.py
 minesweeper_data.csv
 
+# Virtual Environment Files
+myenv/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
