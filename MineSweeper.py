@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 class Minesweeper:
     def __init__(self, rows, columns, num_mines):
@@ -171,7 +172,71 @@ def play_ai_game(model, rows=5, columns=5, num_mines=5):
     game.display_board()
     return game.check_victory()
 
-# Usage example:
+def play_multiple_games(model, num_games=100, rows=5, columns=5, num_mines=5):
+    victories = 0
+    total_moves = 0
+    games_data = []
+    
+    for game_num in range(num_games):
+        print(f"\nGame {game_num + 1}")
+        moves = 0
+        game = Minesweeper(rows, columns, num_mines)
+        
+        while not game.lose and not game.check_victory() and moves < 100:
+            game.display_board()
+            
+            move = get_ai_move(game, model)
+            if move is None:
+                print("No more moves available")
+                break
+                
+            row, col, action = move
+            print(f"AI decides to {action} at position ({row}, {col})")
+            
+            if action == "open":
+                result = game.open_cell(row, col)
+                if result == "mine":
+                    print("Game Over - Mine hit!")
+                    game.display_board()
+                    break
+                elif result == "Victory":
+                    print("Victory!")
+                    game.display_board()
+                    victories += 1
+                    break
+            else:
+                game.mark_mine(row, col)
+            
+            moves += 1
+        
+        total_moves += moves
+        games_data.append({
+            'game_number': game_num + 1,
+            'result': 'Victory' if game.check_victory() else 'Loss',
+            'moves': moves
+        })
+        
+    # Estadisticas finales
+    print("\n=== Final Statistics ===")
+    print(f"Games played: {num_games}")
+    print(f"Victories: {victories}")
+    print(f"Win rate: {(victories/num_games)*100:.2f}%")
+    print(f"Average moves per game: {total_moves/num_games:.2f}")
+    
+    return pd.DataFrame(games_data)
+
+# Uso:
 if __name__ == "__main__":
     model = tf.keras.models.load_model("minesweeper_ai_model.h5")
-    play_ai_game(model)
+    stats_df = play_multiple_games(model, num_games=10)  # Jugar 10 partidas
+    
+    ''' Uncomment to make a graph to see the stadistics of the ia model playing, but it also prints in the console
+    # Visualizar estadisticas
+    plt.figure(figsize=(10, 5))
+    plt.bar(stats_df['game_number'], stats_df['moves'], 
+            color=np.where(stats_df['result'] == 'Victory', 'green', 'red'))
+    plt.title('Moves per Game (Green = Victory, Red = Loss)')
+    plt.xlabel('Game Number')
+    plt.ylabel('Number of Moves')
+    plt.show()
+    '''
