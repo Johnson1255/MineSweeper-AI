@@ -1,6 +1,6 @@
 # Documents to be ignored
 DataGeneration.py
-minesweeper_data.csv
+*.csv
 
 # Virtual Environment Files
 myenv/
