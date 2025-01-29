@@ -18,19 +18,23 @@ class Minesweeper:
     def _create_board(self):
         board = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         mines_placed = 0
+        max_attempts = 100  # Prevenir bucle infinito
+        attempts = 0
 
-        while mines_placed < self.num_mines:
-            row = random.randint(0, self.rows - 1)
-            column = random.randint(0, self.columns - 1)
-
-            if board[row][column] == 0:
-                board[row][column] = -1
-                mines_placed += 1
-
-                for i in range(max(0, row-1), min(self.rows, row+2)):
-                    for j in range(max(0,column-1), min(self.columns, column+2)):
-                        if board[i][j] != -1:
-                            board[i][j] += 1
+        # Crear lista de todas las posiciones posibles
+        all_positions = [(i, j) for i in range(self.rows) for j in range(self.columns)]
+        
+        # Colocar minas usando random.sample
+        mine_positions = random.sample(all_positions, self.num_mines)
+        
+        for row, col in mine_positions:
+            board[row][col] = -1
+            # Incrementar números alrededor de la mina
+            for i in range(max(0, row-1), min(self.rows, row+2)):
+                for j in range(max(0, col-1), min(self.columns, col+2)):
+                    if board[i][j] != -1:
+                        board[i][j] += 1
+        
         return board
 
     def open_cell(self, row, column):
@@ -121,22 +125,26 @@ def generate_game_data(rows, columns, num_mines, num_samples):
     return pd.DataFrame(game_data, columns=column_names)
 
 def get_ai_move(game, model):
-    flattened_board = [cell for row in game.board for cell in row]
-
-    state = np.array(flattened_board).reshape(1, -1)
-    
-    prediction = model.predict(state, verbose=0)
-    action = "open" if np.argmax(prediction) == 0 else "mark"
-    
-    available_cells = [(i, j) for i in range(game.rows) 
-                      for j in range(game.columns) 
-                      if not game.visible[i][j]]
-    
-    if available_cells:
-        row, col = random.choice(available_cells)
-        return row, col, action
-    
-    return None
+    try:
+        flattened_board = [cell for row in game.board for cell in row]
+        state = np.array(flattened_board).reshape(1, -1)
+        
+        # Predicción sin timeout
+        prediction = model.predict(state, verbose=0)
+        action = "open" if np.argmax(prediction) == 0 else "mark"
+        
+        available_cells = [(i, j) for i in range(game.rows) 
+                          for j in range(game.columns) 
+                          if not game.visible[i][j]]
+        
+        if available_cells:
+            row, col = random.choice(available_cells)
+            return row, col, action
+        
+        return None
+    except Exception as e:
+        print(f"Error en predicción: {e}")
+        return None
 
 def play_ai_game(model, rows=5, columns=5, num_mines=5):
     game = Minesweeper(rows, columns, num_mines)
@@ -172,7 +180,7 @@ def play_ai_game(model, rows=5, columns=5, num_mines=5):
     game.display_board()
     return game.check_victory()
 
-def play_multiple_games(model, num_games=100, rows=5, columns=5, num_mines=5):
+def play_multiple_games(model, num_games=100, rows=5, columns=5, num_mines=5, max_moves_per_game=50):
     victories = 0
     total_moves = 0
     games_data = []
@@ -180,63 +188,82 @@ def play_multiple_games(model, num_games=100, rows=5, columns=5, num_mines=5):
     for game_num in range(num_games):
         print(f"\nGame {game_num + 1}")
         moves = 0
-        game = Minesweeper(rows, columns, num_mines)
-        
-        while not game.lose and not game.check_victory() and moves < 100:
-            game.display_board()
+        try:
+            game = Minesweeper(rows, columns, num_mines)
             
-            move = get_ai_move(game, model)
-            if move is None:
-                print("No more moves available")
-                break
+            while not game.lose and not game.check_victory() and moves < max_moves_per_game:
+                game.display_board()
                 
-            row, col, action = move
-            print(f"AI decides to {action} at position ({row}, {col})")
-            
-            if action == "open":
-                result = game.open_cell(row, col)
-                if result == "mine":
-                    print("Game Over - Mine hit!")
-                    game.display_board()
+                move = get_ai_move(game, model)
+                if move is None:
+                    print("No more moves available or prediction error")
                     break
-                elif result == "Victory":
-                    print("Victory!")
-                    game.display_board()
-                    victories += 1
-                    break
-            else:
-                game.mark_mine(row, col)
+                    
+                row, col, action = move
+                print(f"AI decides to {action} at position ({row}, {col})")
+                
+                if action == "open":
+                    result = game.open_cell(row, col)
+                    if result == "mine":
+                        print("Game Over - Mine hit!")
+                        game.display_board()
+                        break
+                    elif result == "Victory":
+                        print("Victory!")
+                        game.display_board()
+                        victories += 1
+                        break
+                else:
+                    game.mark_mine(row, col)
+                
+                moves += 1
+                
+            total_moves += moves
+            games_data.append({
+                'game_number': game_num + 1,
+                'result': 'Victory' if game.check_victory() else 'Loss',
+                'moves': moves
+            })
             
-            moves += 1
-        
-        total_moves += moves
-        games_data.append({
-            'game_number': game_num + 1,
-            'result': 'Victory' if game.check_victory() else 'Loss',
-            'moves': moves
-        })
-        
-    # Estadisticas finales
-    print("\n=== Final Statistics ===")
-    print(f"Games played: {num_games}")
-    print(f"Victories: {victories}")
-    print(f"Win rate: {(victories/num_games)*100:.2f}%")
-    print(f"Average moves per game: {total_moves/num_games:.2f}")
+        except KeyboardInterrupt:
+            print("\nJuego interrumpido por el usuario")
+            break
+        except Exception as e:
+            print(f"Error en el juego {game_num + 1}: {e}")
+            continue
+    
+    # Estadísticas finales
+    games_played = len(games_data)
+    if games_played > 0:
+        print("\n=== Final Statistics ===")
+        print(f"Games played: {games_played}")
+        print(f"Victories: {victories}")
+        print(f"Win rate: {(victories/games_played)*100:.2f}%")
+        print(f"Average moves per game: {total_moves/games_played:.2f}")
+    
+        # Guardar estadísticas en CSV
+        stats_df = pd.DataFrame(games_data)
+        stats_df.to_csv('game_statistics.csv', index=False)
+        print("\nEstadísticas guardadas en 'game_statistics.csv'")
     
     return pd.DataFrame(games_data)
 
 # Uso:
 if __name__ == "__main__":
-    model = tf.keras.models.load_model("minesweeper_ai_model.h5")
-    stats_df = play_multiple_games(model, num_games=10)  # Jugar 10 partidas
-    
-    ''' Uncomment to make a graph to see the stadistics of the ia model playing, but it also prints in the console
-    # Visualizar estadisticas
-    plt.figure(figsize=(10, 5))
-    plt.bar(stats_df['game_number'], stats_df['moves'], 
-            color=np.where(stats_df['result'] == 'Victory', 'green', 'red'))
-    plt.title('Moves per Game (Green = Victory, Red = Loss)')
-    plt.xlabel('Game Number')
-    plt.ylabel('Number of Moves')
-    plt.show()
-    '''
+    try:
+        model = tf.keras.models.load_model("minesweeper_ai_model.h5")
+        stats_df = play_multiple_games(model, num_games=50, max_moves_per_game=50)
+        
+        # Visualizar estadísticas si hay datos
+        if not stats_df.empty:
+            plt.figure(figsize=(10, 5))
+            plt.bar(stats_df['game_number'], stats_df['moves'], 
+                    color=np.where(stats_df['result'] == 'Victory', 'green', 'red'))
+            plt.title('Moves per Game (Green = Victory, Red = Loss)')
+            plt.xlabel('Game Number')
+            plt.ylabel('Number of Moves')
+            plt.show()
+    except KeyboardInterrupt:
+        print("\nPrograma terminado por el usuario")
+    except Exception as e:
+        print(f"Error general: {e}")
