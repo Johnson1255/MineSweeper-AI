@@ -248,11 +248,67 @@ def play_multiple_games(model, num_games=100, rows=5, columns=5, num_mines=5, ma
     
     return pd.DataFrame(games_data)
 
+def generate_training_data_from_ai_games(model, num_games=100, rows=5, columns=5, num_mines=5):
+    training_data = []
+    
+    for game_num in range(num_games):
+        print(f"\nGenerando datos del juego {game_num + 1}")
+        game = Minesweeper(rows, columns, num_mines)
+        moves = 0
+        
+        while not game.lose and not game.check_victory() and moves < 100:
+            # Obtener estado actual
+            state = []
+            for i in range(game.rows):
+                for j in range(game.columns):
+                    if game.visible[i][j]:
+                        state.append(game.board[i][j])
+                    else:
+                        state.append(-2 if game.marked[i][j] else -1)
+            
+            # Obtener movimiento de la IA
+            move = get_ai_move(game, model)
+            if move is None:
+                break
+                
+            row, col, action = move
+            
+            # Solo guardar movimientos exitosos
+            if action == "open":
+                result = game.open_cell(row, col)
+                if result != "mine":  # Solo guardamos movimientos que no resultaron en mina
+                    training_data.append(state + [row, col, "open"])
+            else:
+                if game.board[row][col] == -1:  # Solo guardamos marcados correctos
+                    game.mark_mine(row, col)
+                    training_data.append(state + [row, col, "mark"])
+            
+            moves += 1
+            
+            if moves % 10 == 0:
+                print(f"Movimientos procesados: {moves}")
+    
+    # Guardar los datos en CSV
+    df = pd.DataFrame(training_data)
+    # Asignar nombres de columnas similares a tus datos originales
+    column_names = ([f'cell_{i}' for i in range(rows * columns)] + 
+                   ['row', 'column', 'action'])
+    df.columns = column_names
+    
+    # Guardar en CSV
+    output_file = f"minesweeper_ai_training_data_{len(training_data)}.csv"
+    df.to_csv(output_file, index=False)
+    print(f"\nDatos guardados en {output_file}")
+    
+    return df
+
 # Uso:
 if __name__ == "__main__":
     try:
         model = tf.keras.models.load_model("minesweeper_ai_model.h5")
         stats_df = play_multiple_games(model, num_games=50, max_moves_per_game=50)
+        # Generar nuevos datos de entrenamiento
+        new_training_data = generate_training_data_from_ai_games(model, num_games=50)
         
         # Visualizar estadísticas si hay datos
         if not stats_df.empty:
