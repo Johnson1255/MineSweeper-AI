@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
+tf.config.run_functions_eagerly(True)
 import matplotlib.pyplot as plt
 
 class Minesweeper:
@@ -302,6 +303,39 @@ def generate_training_data_from_ai_games(model, num_games=100, rows=5, columns=5
     
     return df
 
+# Función para reentrenar el modelo
+def retrain_model(model, new_data_df):
+    # Habilitar ejecución eager
+    tf.config.run_functions_eagerly(True)
+    
+    # Preparar los datos nuevos
+    X_new = new_data_df.iloc[:, :-3].values  # Todas las columnas excepto row, column y action
+    y_new = new_data_df['action'].values
+    
+    # Convertir etiquetas
+    label_encoder = LabelEncoder()
+    y_new = label_encoder.fit_transform(y_new)
+    
+    # Recrear el modelo con el mismo diseño
+    new_model = tf.keras.Sequential([
+        tf.keras.layers.Dense(128, activation='relu', input_shape=(X_new.shape[1],)),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(2, activation='softmax')  # Suponiendo clasificación binaria
+    ])
+    
+    # Compilar el nuevo modelo
+    new_model.compile(
+        optimizer='adam', 
+        loss='sparse_categorical_crossentropy', 
+        metrics=['accuracy']
+    )
+    
+    # Reentrenar el modelo
+    print("\nReentrenando modelo...")
+    history = new_model.fit(X_new, y_new, epochs=10, batch_size=32, validation_split=0.2)
+    
+    return new_model, history
+
 # Uso:
 if __name__ == "__main__":
     try:
@@ -310,6 +344,23 @@ if __name__ == "__main__":
         # Generar nuevos datos de entrenamiento
         new_training_data = generate_training_data_from_ai_games(model, num_games=50)
         
+        # Reentrenar el modelo
+        model, history = retrain_model(model, new_training_data)
+        
+        # Guardar el modelo reentrenado
+        model.save("minesweeper_ai_model_retrained.h5")  # Cambiar new_model por model
+        print("\nModelo reentrenado guardado como 'minesweeper_ai_model_retrained.h5'")
+        
+        # Visualizar el progreso del entrenamiento
+        plt.figure(figsize=(10, 5))
+        plt.plot(history.history['accuracy'], label='accuracy')
+        plt.plot(history.history['val_accuracy'], label='val_accuracy')
+        plt.title('Model Accuracy During Retraining')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.show()
+
         # Visualizar estadísticas si hay datos
         if not stats_df.empty:
             plt.figure(figsize=(10, 5))
@@ -319,7 +370,9 @@ if __name__ == "__main__":
             plt.xlabel('Game Number')
             plt.ylabel('Number of Moves')
             plt.show()
+
     except KeyboardInterrupt:
         print("\nPrograma terminado por el usuario")
+
     except Exception as e:
         print(f"Error general: {e}")
