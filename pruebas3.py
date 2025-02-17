@@ -82,51 +82,107 @@ class Minesweeper:
 
 def get_ai_move(game, model):
     try:
-        flattened_board = [cell for row in game.board for cell in row]
-        state = np.array(flattened_board).reshape(1, -1)
-        
-        # Obtener predicción del modelo
-        prediction = model.predict(state, verbose=0)
-        action_probabilities = prediction[0]
-        
-        # Favorecer "open" al inicio del juego
+        # Si es el primer movimiento, elegir una esquina o borde
         num_visible = sum(sum(row) for row in game.visible)
-        if num_visible < (game.rows * game.columns * 0.2):  # Si menos del 20% está visible
-            action_probabilities[0] *= 1.5  # Aumentar probabilidad de "open"
+        if num_visible == 0:
+            # Preferir esquinas y bordes para el primer movimiento
+            corners = [(0,0), (0,game.columns-1), (game.rows-1,0), (game.rows-1,game.columns-1)]
+            edges = ([(0,j) for j in range(1,game.columns-1)] + 
+                    [(game.rows-1,j) for j in range(1,game.columns-1)] +
+                    [(i,0) for i in range(1,game.rows-1)] + 
+                    [(i,game.columns-1) for i in range(1,game.rows-1)])
+            
+            # 70% probabilidad de elegir esquina, 30% de elegir borde
+            if random.random() < 0.7 and corners:
+                row, col = random.choice(corners)
+            else:
+                row, col = random.choice(edges) if edges else random.choice(corners)
+            return row, col, "open"
+
+        # Analizar el tablero actual para tomar decisiones informadas
+        safe_moves = []  # Lista de casillas seguras para abrir
+        mine_locations = []  # Lista de casillas que definitivamente tienen minas
         
-        # Limitar el número de marcas basado en el número de minas
-        num_marked = sum(sum(row) for row in game.marked)
-        if num_marked >= game.num_mines:
-            action_probabilities[1] = 0  # No permitir más marcas si ya marcamos suficientes
-        
-        action = "open" if action_probabilities[0] > action_probabilities[1] else "mark"
-        
-        # Obtener celdas disponibles con sistema de puntuación
-        available_cells = []
+        # Analizar cada celda visible con número
         for i in range(game.rows):
             for j in range(game.columns):
-                if not game.visible[i][j]:
-                    # Puntuación basada en celdas adyacentes descubiertas
-                    score = 0
+                if game.visible[i][j] and game.board[i][j] > 0:
+                    # Contar casillas marcadas y ocultas alrededor
+                    adjacent_cells = []
+                    marked_count = 0
+                    hidden_count = 0
+                    
                     for di in [-1, 0, 1]:
                         for dj in [-1, 0, 1]:
+                            if di == 0 and dj == 0:
+                                continue
                             ni, nj = i + di, j + dj
-                            if (0 <= ni < game.rows and 
-                                0 <= nj < game.columns and 
-                                game.visible[ni][nj]):
-                                score += 1
-                    available_cells.append((i, j, score))
-        
-        if available_cells:
-            # Ordenar celdas por puntuación y seleccionar preferentemente las mejores
-            available_cells.sort(key=lambda x: x[2], reverse=True)
-            if random.random() < 0.7:  # 70% de probabilidad de elegir entre las mejores opciones
-                selected = available_cells[0:max(1, len(available_cells)//3)]
-            else:
-                selected = available_cells
+                            if 0 <= ni < game.rows and 0 <= nj < game.columns:
+                                if not game.visible[ni][nj]:
+                                    if game.marked[ni][nj]:
+                                        marked_count += 1
+                                    else:
+                                        hidden_count += 1
+                                        adjacent_cells.append((ni, nj))
+                    
+                    # Si el número coincide con las minas marcadas y hay celdas ocultas
+                    if game.board[i][j] == marked_count and hidden_count > 0:
+                        safe_moves.extend(adjacent_cells)
+                    
+                    # Si el número menos las minas marcadas es igual a las celdas ocultas
+                    elif game.board[i][j] - marked_count == hidden_count and hidden_count > 0:
+                        mine_locations.extend(adjacent_cells)
+
+        # Priorizar movimientos
+        if safe_moves:
+            # Si tenemos movimientos seguros, usar uno de ellos
+            row, col = random.choice(safe_moves)
+            return row, col, "open"
+        elif mine_locations and sum(sum(row) for row in game.marked) < game.num_mines:
+            # Si hemos identificado minas y no hemos marcado demasiadas
+            row, col = random.choice(mine_locations)
+            return row, col, "mark"
+        else:
+            # Si no hay movimientos obvios, usar el modelo para predecir
+            flattened_board = [cell for row in game.board for cell in row]
+            state = np.array(flattened_board).reshape(1, -1)
+            prediction = model.predict(state, verbose=0)
             
-            row, col, _ = random.choice(selected)
-            return row, col, action
+            # Encontrar la celda no abierta más prometedora
+            available_cells = []
+            for i in range(game.rows):
+                for j in range(game.columns):
+                    if not game.visible[i][j] and not game.marked[i][j]:
+                        # Calcular puntuación basada en celdas adyacentes conocidas
+                        score = 0
+                        nearby_numbers = False
+                        for di in [-1, 0, 1]:
+                            for dj in [-1, 0, 1]:
+                                ni, nj = i + di, j + dj
+                                if (0 <= ni < game.rows and 
+                                    0 <= nj < game.columns and 
+                                    game.visible[ni][nj]):
+                                    if game.board[ni][nj] > 0:
+                                        nearby_numbers = True
+                                        score += 2
+                                    elif game.board[ni][nj] == 0:
+                                        score += 1
+                        if nearby_numbers:
+                            available_cells.append((i, j, score))
+            
+            if available_cells:
+                # Ordenar por puntuación y elegir una de las mejores opciones
+                available_cells.sort(key=lambda x: x[2], reverse=True)
+                top_choices = available_cells[:max(1, len(available_cells)//3)]
+                row, col, _ = random.choice(top_choices)
+                return row, col, "open"
+            else:
+                # Si no hay mejores opciones, elegir una celda aleatoria no abierta
+                available = [(i,j) for i in range(game.rows) for j in range(game.columns) 
+                           if not game.visible[i][j] and not game.marked[i][j]]
+                if available:
+                    row, col = random.choice(available)
+                    return row, col, "open"
         
         return None
     except Exception as e:
