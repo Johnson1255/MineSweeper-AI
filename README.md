@@ -60,5 +60,11 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 👤 Author & Credits
+MineSweeper-AI was created and maintained by **Senlin** ([Johnson1255](https://github.com/Johnson1255)).
+If you use this project, I would appreciate a mention or a link back to this repository. 🩵
+
 ## 📝 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+🚨 **Notice**: While this project is open-source under MIT, please ensure to keep the original license and give proper attribution when using or modifying this code.
