@@ -1,70 +1,93 @@
-# MineSweeper-AI 🎮
+# MineSweeper-AI 2.0 🎮🧠
 
-## About MineSweeper-AI
-MineSweeper-AI is an artificial intelligence-powered program designed to play the classic Minesweeper game. This project leverages machine learning techniques to analyze the game board, predict safe moves, and efficiently solve Minesweeper puzzles using TensorFlow and neural networks.
+## Visión del Proyecto
+MineSweeper-AI es un proyecto ambicioso que combina algoritmos deterministas y aprendizaje por refuerzo para dominar el clásico juego de Buscaminas. Nuestro objetivo es desarrollar una IA que pueda superar el rendimiento humano en todos los niveles de dificultad, mediante la combinación inteligente de estrategias conocidas y técnicas avanzadas de aprendizaje automático.
 
-## 🌟 Current Features
-- **Neural Network-based AI**: Deep learning model that learns to make strategic decisions
-- **Automated Gameplay**: AI can play complete games autonomously
-- **Performance Tracking**: Comprehensive statistics collection and visualization
-- **Training Data Generation**: Automatic generation of training data from gameplay
-- **Model Retraining**: Capability to improve the AI through continuous learning
-- **Visualization Tools**: Real-time game board display and performance graphs
-- **Flexible Board Configuration**: Customizable board size and mine density
+## 🌟 Características Actuales
+- **Motor de juego personalizado**: Implementación completa del juego Buscaminas
+- **Modelo de IA basado en redes neuronales**: Capacidad de juego autónomo
+- **Generación de datos de entrenamiento**: A partir de partidas jugadas
+- **Seguimiento de estadísticas**: Recopilación y visualización de rendimiento
+- **Visualización del tablero**: Representación en tiempo real de las partidas
 
-## 🔧 Technical Implementation
-- **Game Engine**: Custom Minesweeper implementation with complete game logic
-- **AI Model Architecture**:
-  - Neural network with multiple dense layers
-  - Input layer matching board state dimensions
-  - Hidden layers with ReLU activation
-  - Output layer with softmax activation for move classification
-- **Training Pipeline**:
-  - Automated data generation from gameplay
-  - Model retraining capabilities
-  - Performance monitoring and visualization
-- **Statistics Collection**:
-  - Win rate tracking
-  - Moves per game analysis
-  - CSV export of game statistics
+## 🚀 Roadmap (En Desarrollo)
 
-## 🚀 Future Features
-- **Advanced Strategy Implementation**: Implement probability-based decision making
-- **Improved Training Methods**: Enhanced data generation and model optimization
-- **User Interface**: Interactive GUI for watching AI gameplay
-- **Strategy Comparison**: Benchmark different AI approaches
-- **Real-time Analysis**: Visualization of AI decision-making process
+### Fase 1: Reestructuración y Fundamentos
+- [x] Motor de juego básico
+- [ ] Arquitectura modular mejorada
+- [ ] Implementación de algoritmos deterministas
+- [ ] Sistema de eventos para mayor flexibilidad
+- [ ] Niveles de dificultad estándar
 
-## 💻 Usage
-The program currently supports:
-1. Training new AI models
-2. Playing multiple games automatically
-3. Collecting and analyzing game statistics
-4. Visualizing performance metrics
-5. Retraining models with new data
+### Fase 2: Aprendizaje por Refuerzo
+- [ ] Diseño del sistema RL (estados, acciones, recompensas)
+- [ ] Entorno de entrenamiento compatible con OpenAI Gym
+- [ ] Implementación de algoritmos DQN/A2C/PPO
+- [ ] Curriculum learning (progresión de dificultad)
+- [ ] Sistema de checkpoints y recuperación
 
-## 📈 Performance Metrics
-The AI's performance is tracked through:
-- Win rate percentage
-- Average moves per game
-- Game completion statistics
-- Model accuracy during training
-All statistics are automatically saved to CSV files for further analysis.
+### Fase 3: Mejoras Avanzadas
+- [ ] Sistema híbrido (determinista + RL)
+- [ ] Mecanismos de exploración optimizados
+- [ ] Memoria de estados pasados
+- [ ] Análisis de confianza para predicciones
+- [ ] Optimización de rendimiento
 
-## 🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+### Fase 4: Visualización e Interfaz
+- [ ] UI gráfica mejorada
+- [ ] Visualización del proceso de toma de decisiones
+- [ ] Dashboard de estadísticas en tiempo real
+- [ ] Modo de demostración y comparativa
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+### Fase 5: Evaluación y Documentación
+- [ ] Benchmarking extensivo
+- [ ] Documentación técnica completa
+- [ ] Publicación de resultados
 
-## 👤 Author & Credits
-MineSweeper-AI was created and maintained by **Senlin** ([Johnson1255](https://github.com/Johnson1255)).
-If you use this project, I would appreciate a mention or a link back to this repository. 🩵
+## 🔧 Enfoque Técnico
+El proyecto adopta un enfoque híbrido que combina:
 
-## 📝 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+1. **Algoritmos Deterministas**:
+   - Single Point Strategy
+   - Análisis de configuraciones
+   - Patrones conocidos de Buscaminas
 
-🚨 **Notice**: While this project is open-source under MIT, please ensure to keep the original license and give proper attribution when using or modifying this code.
+2. **Aprendizaje por Refuerzo**:
+   - Deep Q-Networks (DQN)
+   - Advantage Actor-Critic (A2C)
+   - Proximal Policy Optimization (PPO)
+
+3. **Representación de Estado Avanzada**:
+   - Codificación eficiente del tablero
+   - Información contextual y probabilística
+   - Memoria de estados anteriores
+
+## 🖥️ Requisitos Técnicos
+- Python 3.8+
+- TensorFlow 2.x / PyTorch
+- NumPy, Pandas
+- Matplotlib/Seaborn (visualización)
+- OpenAI Gym (entorno de RL)
+
+## 📊 Métricas de Evaluación
+- Tasa de victorias por nivel de dificultad
+- Eficiencia (% de movimientos óptimos)
+- Tiempo de resolución
+- Comparativa con rendimiento humano promedio
+
+## 🤝 Contribuciones
+¡Las contribuciones son bienvenidas! Si deseas colaborar:
+
+1. Haz fork del repositorio
+2. Crea tu rama de características (`git checkout -b feature/NuevaCaracterística`)
+3. Realiza tus cambios y haz commit (`git commit -m 'Añadir nueva característica'`)
+4. Haz push a tu rama (`git push origin feature/NuevaCaracterística`)
+5. Abre un Pull Request
+
+## 👤 Autor & Créditos
+MineSweeper-AI fue creado y es mantenido por **Senlin** ([Johnson1255](https://github.com/Johnson1255)).
+
+## 📝 Licencia
+Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo [LICENSE](LICENSE) para más detalles.
+
+🚨 **Aviso**: Aunque este proyecto es de código abierto bajo MIT, por favor mantén la licencia original y da la atribución adecuada al usar o modificar este código.
